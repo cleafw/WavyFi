@@ -1,3 +1,4 @@
+using WavyFi.Localization;
 using System.Globalization;
 
 namespace WavyFi.Models;
@@ -8,8 +9,8 @@ public static class AgeFormat
     /// so the values stay CSV-friendly).</summary>
     public static string Short(int seconds) => seconds switch
     {
-        < 60 => $"{seconds}s",
-        < 3600 => (seconds / 60.0).ToString("0.#", CultureInfo.InvariantCulture) + "m",
-        _ => (seconds / 3600.0).ToString("0.#", CultureInfo.InvariantCulture) + "h",
+        < 60 => Locale.T($"{seconds}s", $"{seconds}秒"),
+        < 3600 => (seconds / 60.0).ToString("0.#", CultureInfo.InvariantCulture) + Locale.T("m", "分钟"),
+        _ => (seconds / 3600.0).ToString("0.#", CultureInfo.InvariantCulture) + Locale.T("h", "小时"),
     };
 }

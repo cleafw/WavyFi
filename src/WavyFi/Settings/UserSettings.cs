@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
+using WavyFi.Localization;
 
 namespace WavyFi.Settings;
 
@@ -14,6 +15,30 @@ namespace WavyFi.Settings;
 internal static class UserSettings
 {
     private const string KeyPath = @"Software\WavyFi";
+
+    public static CultureInfo LoadLanguage()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
+            if (key?.GetValue("Language") is string language &&
+                language is "en" or "zh-CN")
+                return CultureInfo.GetCultureInfo(language);
+        }
+        catch { /* Use the system language when preferences are unavailable. */ }
+        return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh"
+            ? CultureInfo.GetCultureInfo("zh-CN") : CultureInfo.GetCultureInfo("en");
+    }
+
+    public static void SaveLanguage(string language)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
+            key.SetValue("Language", language);
+        }
+        catch { /* A read-only settings store must not prevent switching. */ }
+    }
 
     public static void Restore(Window window)
     {
@@ -123,7 +148,7 @@ internal static class UserSettings
         {
             using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
             var spec = string.Join(";", grid.Columns.Select(c =>
-                $"{c.Header}={c.DisplayIndex}:{(c.Visibility == Visibility.Visible ? 1 : 0)}"));
+                $"{ColumnId(c)}={c.DisplayIndex}:{(c.Visibility == Visibility.Visible ? 1 : 0)}"));
             key.SetValue($"Cols.{gridAlias}", spec);
         }
         catch
@@ -154,7 +179,7 @@ internal static class UserSettings
             if (stored.Count == 0) return;
 
             foreach (var column in grid.Columns)
-                if (column.Header is string header && stored.TryGetValue(header, out var s))
+                if (stored.TryGetValue(ColumnId(column), out var s))
                     column.Visibility = s.Visible ? Visibility.Visible : Visibility.Collapsed;
 
             // Columns unknown to the stored layout (added in a newer app
@@ -162,7 +187,7 @@ internal static class UserSettings
             var ordered = grid.Columns
                 .Select((column, declared) => (
                     Column: column,
-                    Target: column.Header is string header && stored.TryGetValue(header, out var s)
+                    Target: stored.TryGetValue(ColumnId(column), out var s)
                         ? s.Index
                         : 1000 + declared))
                 .OrderBy(x => x.Target)
@@ -175,6 +200,9 @@ internal static class UserSettings
             // Corrupt layout: keep the declared defaults.
         }
     }
+
+    private static string ColumnId(DataGridColumn column) =>
+        ColumnKey.GetId(column) ?? column.Header?.ToString() ?? string.Empty;
 
     private static double ReadDouble(RegistryKey key, string name) =>
         key.GetValue(name) is string s &&

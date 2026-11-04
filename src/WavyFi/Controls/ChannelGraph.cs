@@ -1,3 +1,4 @@
+using static WavyFi.Localization.Locale;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
@@ -123,7 +124,7 @@ public class ChannelGraph : FrameworkElement
 
         if (_entries.Count == 0)
         {
-            var empty = Text($"No {_band} networks", 12 * fs, AxisBrush, ppd);
+            var empty = Text(F("No {0} networks", "未发现 {0} 网络", _band), 12 * fs, AxisBrush, ppd);
             dc.DrawText(empty, new Point((w - empty.Width) / 2, (h - empty.Height) / 2));
             return;
         }

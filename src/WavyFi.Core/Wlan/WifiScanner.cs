@@ -1,3 +1,4 @@
+using WavyFi.Localization;
 using System.Runtime.InteropServices;
 using WavyFi.Models;
 
@@ -26,9 +27,9 @@ public sealed class WifiScanner : IDisposable
 
     public string InterfaceDescription => _selected.Count switch
     {
-        0 => "(no WiFi adapter)",
+        0 => Locale.T("(no WiFi adapter)", "（无无线网卡）"),
         1 => _selected[0].Description,
-        _ => $"{_selected.Count} adapters",
+        _ => Locale.T($"{_selected.Count} adapters", $"{_selected.Count} 个无线网卡"),
     };
 
     /// <summary>Raised (on a native worker thread) when a selected adapter
@@ -41,7 +42,7 @@ public sealed class WifiScanner : IDisposable
         var result = WlanInterop.WlanOpenHandle(
             WlanInterop.ClientVersion, IntPtr.Zero, out _, out _handle);
         if (result != 0)
-            throw new InvalidOperationException($"WlanOpenHandle failed: {result}");
+            throw new InvalidOperationException(Locale.T($"WlanOpenHandle failed: {result}", $"打开无线网络服务失败（WlanOpenHandle）：{result}"));
 
         SelectFirstAdapter();
 
@@ -175,7 +176,7 @@ public sealed class WifiScanner : IDisposable
             {
                 SelectFirstAdapter();
                 throw new InvalidOperationException(
-                    "The selected WiFi adapter is no longer available — scanning will fall back to the next available adapter.");
+                    Locale.T("The selected WiFi adapter is no longer available — scanning will fall back to the next available adapter.", "所选无线网卡已不可用，将改用下一个可用网卡扫描。"));
             }
         }
 
@@ -199,7 +200,7 @@ public sealed class WifiScanner : IDisposable
         {
             if (result == 5)
                 throw new InvalidOperationException(
-                    "Access denied reading scan results. Check that Location access is enabled in Windows Settings > Privacy & security > Location.");
+                    Locale.T("Access denied reading scan results. Check that Location access is enabled in Windows Settings > Privacy & security > Location.", "无权读取扫描结果。请在 Windows 设置 > 隐私和安全性 > 位置中开启位置访问权限。"));
 
             // Soft radio-off (the WiFi quick-setting toggle or airplane mode)
             // keeps the interface enumerable but fails every query with this
@@ -216,7 +217,7 @@ public sealed class WifiScanner : IDisposable
                 return null; // unplugged / disabled
 
             throw new InvalidOperationException(
-                $"Could not read scan results ({adapter.Description}): {new System.ComponentModel.Win32Exception((int)result).Message}");
+                Locale.T($"Could not read scan results ({adapter.Description}): {new System.ComponentModel.Win32Exception((int)result).Message}", $"无法读取扫描结果（{adapter.Description}）：{new System.ComponentModel.Win32Exception((int)result).Message}"));
         }
 
         try

@@ -1,4 +1,6 @@
 using System.Windows;
+using WavyFi.Localization;
+using WavyFi.Settings;
 
 namespace WavyFi;
 
@@ -7,6 +9,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        Locale.Culture = UserSettings.LoadLanguage();
 
         // Any command-line argument switches to console mode; a plain start
         // (double-click) opens the GUI. `--demo` alone opens the GUI on

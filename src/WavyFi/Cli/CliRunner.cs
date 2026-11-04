@@ -1,3 +1,5 @@
+using System.Text;
+using WavyFi.Localization;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using WavyFi.Analysis;
@@ -136,13 +138,25 @@ internal static class CliRunner
         Options opts;
         try
         {
+            // Read language before other options so even earlier errors use the requested language.
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (!args[i].Equals("--lang", StringComparison.OrdinalIgnoreCase)) continue;
+                if (i + 1 >= args.Length)
+                    throw new ArgumentException(Locale.T("--lang needs en or zh-CN", "--lang 需要 en 或 zh-CN"));
+                string language = args[++i];
+                if (!language.Equals("en", StringComparison.OrdinalIgnoreCase) &&
+                    !language.Equals("zh-CN", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException(Locale.T("--lang must be en or zh-CN", "--lang 必须为 en 或 zh-CN"));
+                Locale.Culture = CultureInfo.GetCultureInfo(language);
+            }
             opts = Parse(args);
             Validate(opts);
         }
         catch (ArgumentException ex)
         {
             Console.Error.WriteLine($"WavyFi: {ex.Message}");
-            Console.Error.WriteLine("Run 'WavyFi.exe --help' for usage.");
+            Console.Error.WriteLine(Locale.T("Run 'WavyFi.exe --help' for usage.", "运行 WavyFi.exe --help 查看用法。"));
             return 2;
         }
 
@@ -154,7 +168,7 @@ internal static class CliRunner
 
         if (opts.Version)
         {
-            Console.WriteLine($"WavyFi v{AppVersion()} - (c) 2026 zhgzhg - https://github.com/zhgzhg/WavyFi");
+            Console.WriteLine($"WavyFi v{AppVersion()} - (c) 2026 zhgzhg - https://github.com/cleafw/WavyFi");
             return 0;
         }
 
@@ -178,7 +192,7 @@ internal static class CliRunner
         var adapters = scanner.EnumerateAdapters();
         if (adapters.Count == 0)
         {
-            Console.Error.WriteLine("WavyFi: no WiFi adapters found.");
+            Console.Error.WriteLine(Locale.T("WavyFi: no WiFi adapters found.", "WavyFi：未找到无线网卡。"));
             return 1;
         }
 
@@ -206,7 +220,7 @@ internal static class CliRunner
                 if (!int.TryParse(part.Trim(), out var index) ||
                     adapters.All(a => a.Index != index))
                 {
-                    Console.Error.WriteLine($"WavyFi: unknown adapter index '{part.Trim()}' — see --list-adapters");
+                    Console.Error.WriteLine(Locale.T($"WavyFi: unknown adapter index '{part.Trim()}' — see --list-adapters", $"WavyFi：未知的网卡编号 '{part.Trim()}'，请使用 --list-adapters 查看。"));
                     return 2;
                 }
                 selected.Add(adapters.First(a => a.Index == index));
@@ -217,7 +231,7 @@ internal static class CliRunner
         if (!opts.Csv)
         {
             foreach (var a in selected)
-                Console.WriteLine($"Scanning on [{a.Index}] {a.Description}");
+                Console.WriteLine(Locale.T($"Scanning on [{a.Index}] {a.Description}", $"正在使用 [{a.Index}] {a.Description} 扫描"));
         }
 
         do
@@ -228,13 +242,13 @@ internal static class CliRunner
             if (off.Count > 0 && off.Count == scanner.SelectedAdapters.Count)
             {
                 Console.Error.WriteLine(
-                    "WavyFi: WiFi is turned off — turn it back on in quick settings or Settings > Network & internet.");
+                    Locale.T("WavyFi: WiFi is turned off — turn it back on in quick settings or Settings > Network & internet.", "WavyFi：WiFi 已关闭，请在快捷设置或“设置 > 网络和 Internet”中开启。"));
                 if (opts.WatchSeconds is null) return 1;
             }
             else if (off.Count > 0)
             {
                 Console.Error.WriteLine(
-                    $"WavyFi: radio off on {string.Join(", ", off)} — results are from the remaining adapters.");
+                    Locale.T($"WavyFi: radio off on {string.Join(", ", off)} — results are from the remaining adapters.", $"WavyFi：{string.Join(", ", off)} 的无线功能已关闭，结果来自其余网卡。"));
             }
 
             var filtered = FilterNetworks(networks, opts);
@@ -324,24 +338,24 @@ internal static class CliRunner
         Console.WriteLine();
         if (networks.Count == 0)
         {
-            Console.WriteLine("No networks matched.");
+            Console.WriteLine(Locale.T("No networks matched.", "没有符合条件的网络。"));
             return;
         }
 
-        string adapterHeader = multiAdapter ? "Ad " : "";
-        Console.WriteLine($"{adapterHeader}{"(E)SSID",-28} {"BSSID",-17} {"RSSI",5} {"Ch",4} {"MHz",4} {"Band",-4} {"802.11",-12} {"Max Mbps",9} {"Security",-16} Vendor");
+        string adapterHeader = multiAdapter ? Locale.T("Ad ", "网卡 ") : "";
+        Console.WriteLine(adapterHeader + string.Join(" ", Cell("(E)SSID", 28), Cell("BSSID", 17), Cell("RSSI", 5, true), Cell(Locale.T("Ch", "信道"), 4, true), Cell("MHz", 4, true), Cell(Locale.T("Band", "频段"), 4), Cell("802.11", 12), Cell(Locale.T("Max Mbps", "最高 Mbps"), 9, true), Cell(Locale.T("Security", "安全方式"), 16), Locale.T("Vendor", "厂商")));
 
         foreach (var n in networks)
         {
             string adapter = multiAdapter ? $"[{n.AdapterIndex}]" : "";
-            string ssid = string.IsNullOrEmpty(n.Ssid) ? "(hidden)" : n.Ssid;
+            string ssid = n.DisplayName;
             if (ssid.Length > 28) ssid = ssid[..27] + "…";
             string band = n.Band.Replace(" GHz", "");
             string maxRate = n.MaxRateMbps.ToString("0.#", CultureInfo.InvariantCulture);
             Console.WriteLine(
-                $"{adapter}{ssid,-28} {n.Bssid,-17} {n.Rssi,5} {n.Channel,4} {n.ChannelWidthMhz,4} {band,-4} {n.Standards,-12} {maxRate,9} {n.Security,-16} {n.Vendor}{(n.IsConnected ? "  [connected]" : "")}");
+                adapter + string.Join(" ", Cell(ssid, 28), Cell(n.Bssid, 17), Cell(n.Rssi.ToString(), 5, true), Cell(n.Channel.ToString(), 4, true), Cell(n.ChannelWidthMhz.ToString(), 4, true), Cell(band, 4), Cell(n.Standards, 12), Cell(maxRate, 9, true), Cell(DisplayText.Security(n.Security), 16), DisplayText.Vendor(n.Vendor)) + (n.IsConnected ? Locale.T("  [connected]", "  [已连接]") : ""));
         }
-        Console.WriteLine($"\n{networks.Count} network(s), {DateTime.Now:HH:mm:ss}");
+        Console.WriteLine(Locale.T($"\n{networks.Count} network(s), {DateTime.Now:HH:mm:ss}", $"\n{networks.Count} 个网络，{DateTime.Now:HH:mm:ss}"));
     }
 
     private static void PrintNetworksCsv(List<WifiNetwork> networks)
@@ -369,7 +383,7 @@ internal static class CliRunner
         watcher.SweepCompleted += () => sweepDone.TrySetResult();
 
         if (!opts.Csv)
-            Console.WriteLine("Discovering WiFi Direct peers...");
+            Console.WriteLine(Locale.T("Discovering WiFi Direct peers...", "正在发现 WiFi Direct 设备……"));
 
         watcher.Start();
 
@@ -427,19 +441,21 @@ internal static class CliRunner
         Console.WriteLine();
         if (peers.Count == 0)
         {
-            Console.WriteLine("No WiFi Direct peers found (they only appear while advertising).");
+            Console.WriteLine(Locale.T("No WiFi Direct peers found (they only appear while advertising).", "未发现 WiFi Direct 设备（仅在设备广播时才能发现）。"));
             return;
         }
 
-        Console.WriteLine($"{"Name",-26} {"RSSI",5} {"Type",-18} {"Paired",-6} {"Vendor",-30} MAC");
+        Console.WriteLine(string.Join(" ", Cell(Locale.T("Name", "名称"), 26), Cell("RSSI", 5, true), Cell(Locale.T("Type", "类型"), 18), Cell(Locale.T("Paired", "已配对"), 6), Cell(Locale.T("Vendor", "厂商"), 30), "MAC"));
         foreach (var p in peers)
         {
-            string name = p.Name.Length > 26 ? p.Name[..25] + "…" : p.Name;
-            string vendor = p.Vendor.Length > 30 ? p.Vendor[..29] + "…" : p.Vendor;
+            string displayName = DisplayText.PeerName(p.Name);
+            string name = displayName.Length > 26 ? displayName[..25] + "…" : displayName;
+            string displayVendor = DisplayText.Vendor(p.Vendor);
+            string vendor = displayVendor.Length > 30 ? displayVendor[..29] + "…" : displayVendor;
             Console.WriteLine(
-                $"{name,-26} {(p.SignalDbm?.ToString() ?? ""),5} {p.DeviceType,-18} {(p.IsPaired ? "yes" : ""),-6} {vendor,-30} {p.Address}");
+                string.Join(" ", Cell(name, 26), Cell(p.SignalDbm?.ToString() ?? "", 5, true), Cell(DisplayText.DeviceType(p.DeviceType), 18), Cell(p.IsPaired ? Locale.T("yes", "是") : "", 6), Cell(vendor, 30), p.Address));
         }
-        Console.WriteLine($"\n{peers.Count} peer(s), {DateTime.Now:HH:mm:ss}");
+        Console.WriteLine(Locale.T($"\n{peers.Count} peer(s), {DateTime.Now:HH:mm:ss}", $"\n{peers.Count} 个设备，{DateTime.Now:HH:mm:ss}"));
     }
 
     private static void PrintPeersCsv(List<WifiDirectPeer> peers)
@@ -455,6 +471,27 @@ internal static class CliRunner
 
     // ----- shared ---------------------------------------------------------
 
+    // East Asian text occupies two terminal cells; UTF-16 alignment counts it as one.
+    private static string Cell(string text, int width, bool right = false)
+    {
+        var result = new System.Text.StringBuilder();
+        int used = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            int value = rune.Value;
+            int cells = value is >= 0x1100 and <= 0x115F or >= 0x2E80 and <= 0xA4CF
+                or >= 0xAC00 and <= 0xD7A3 or >= 0xF900 and <= 0xFAFF
+                or >= 0xFE10 and <= 0xFE6F or >= 0xFF01 and <= 0xFF60
+                or >= 0xFFE0 and <= 0xFFE6 or >= 0x1F300 and <= 0x1FAFF
+                or >= 0x20000 and <= 0x3FFFF ? 2 : 1;
+            if (used + cells > width) break;
+            result.Append(rune.ToString());
+            used += cells;
+        }
+        string padding = new(' ', width - used);
+        return right ? padding + result : result + padding;
+    }
+
     private static string Csv(string value) =>
         value.IndexOfAny(new[] { ',', '"', '\n', '\r' }) >= 0
             ? $"\"{value.Replace("\"", "\"\"")}\""
@@ -466,7 +503,7 @@ internal static class CliRunner
         for (int i = 0; i < args.Length; i++)
         {
             string Next(string name) =>
-                i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{name} needs a value");
+                i + 1 < args.Length ? args[++i] : throw new ArgumentException(Locale.T($"{name} needs a value", $"{name} 需要一个值"));
 
             switch (args[i].ToLowerInvariant())
             {
@@ -475,6 +512,9 @@ internal static class CliRunner
                     break;
                 case "p2p" or "--p2p" or "wifidirect" or "--wifidirect":
                     opts.Mode = Mode.P2p;
+                    break;
+                case "--lang":
+                    _ = Next("--lang"); // Already validated before parsing.
                     break;
                 case "--adapters":
                     opts.Adapters = Next("--adapters").ToLowerInvariant();
@@ -485,7 +525,7 @@ internal static class CliRunner
                 case "--band":
                     var band = Next("--band").ToLowerInvariant().Replace("ghz", "").Trim();
                     if (band is not ("2.4" or "5" or "6"))
-                        throw new ArgumentException("--band must be 2.4, 5 or 6");
+                        throw new ArgumentException(Locale.T("--band must be 2.4, 5 or 6", "--band 必须是 2.4、5 或 6"));
                     opts.Band = band;
                     break;
                 case "--search":
@@ -493,7 +533,7 @@ internal static class CliRunner
                     break;
                 case "--min-signal":
                     if (!int.TryParse(Next("--min-signal"), out var signal))
-                        throw new ArgumentException("--min-signal needs a dBm number, e.g. -75");
+                        throw new ArgumentException(Locale.T("--min-signal needs a dBm number, e.g. -75", "--min-signal 需要一个 dBm 数值，例如 -75"));
                     opts.MinSignal = signal;
                     break;
                 case "--csv":
@@ -505,7 +545,7 @@ internal static class CliRunner
                         var pieces = spec.Trim().Split(':');
                         bool desc = pieces.Length > 1 && pieces[1].Equals("desc", StringComparison.OrdinalIgnoreCase);
                         if (pieces.Length > 1 && !desc && !pieces[1].Equals("asc", StringComparison.OrdinalIgnoreCase))
-                            throw new ArgumentException($"--sort direction must be asc or desc, not '{pieces[1]}'");
+                            throw new ArgumentException(Locale.T($"--sort direction must be asc or desc, not '{pieces[1]}'", $"--sort 排序方向必须是 asc 或 desc，不能为 '{pieces[1]}'"));
                         opts.SortSpecs.Add((pieces[0].ToLowerInvariant(), desc));
                     }
                     break;
@@ -522,7 +562,7 @@ internal static class CliRunner
                     break;
                 case "--timeout":
                     if (!int.TryParse(Next("--timeout"), out var timeout) || timeout <= 0)
-                        throw new ArgumentException("--timeout needs a positive number of seconds");
+                        throw new ArgumentException(Locale.T("--timeout needs a positive number of seconds", "--timeout 需要一个正整数秒数"));
                     opts.TimeoutSeconds = timeout;
                     break;
                 case "-h" or "--help" or "-?" or "/?":
@@ -532,7 +572,7 @@ internal static class CliRunner
                     opts.Version = true;
                     break;
                 default:
-                    throw new ArgumentException($"unknown option '{args[i]}'");
+                    throw new ArgumentException(Locale.T($"unknown option '{args[i]}'", $"未知选项 '{args[i]}'"));
             }
         }
         return opts;
@@ -545,11 +585,11 @@ internal static class CliRunner
         if (opts.Mode == Mode.P2p)
         {
             if (opts.Band is not null)
-                throw new ArgumentException("--band does not apply to p2p mode");
+                throw new ArgumentException(Locale.T("--band does not apply to p2p mode", "--band 不适用于 p2p 模式"));
             if (opts.Adapters.Length > 0 || opts.ListAdapters)
-                throw new ArgumentException("adapter selection does not apply to p2p mode (Windows manages the radio)");
+                throw new ArgumentException(Locale.T("adapter selection does not apply to p2p mode (Windows manages the radio)", "p2p 模式不支持选择网卡（无线设备由 Windows 管理）"));
             if (opts.Advise)
-                throw new ArgumentException("--advise does not apply to p2p mode");
+                throw new ArgumentException(Locale.T("--advise does not apply to p2p mode", "--advise 不适用于 p2p 模式"));
         }
 
         var sortKeys = opts.Mode == Mode.P2p
@@ -559,7 +599,7 @@ internal static class CliRunner
         {
             if (!sortKeys.Contains(column))
                 throw new ArgumentException(
-                    $"unknown sort column '{column}' for {(opts.Mode == Mode.P2p ? "p2p" : "scan")} — use one of: {string.Join(", ", sortKeys)}");
+                    Locale.T($"unknown sort column '{column}' for {(opts.Mode == Mode.P2p ? "p2p" : "scan")} — use one of: {string.Join(", ", sortKeys)}", $"{(opts.Mode == Mode.P2p ? "p2p" : "scan")} 模式不支持排序列 '{column}'，可用列：{string.Join(", ", sortKeys)}"));
         }
     }
 
@@ -613,6 +653,49 @@ internal static class CliRunner
 
     private static void PrintUsage()
     {
+        if (Locale.IsChinese)
+        {
+            Console.WriteLine($"""
+                WavyFi v{AppVersion()} - 在终端中扫描附近的 WiFi 网络。
+
+                用法：WavyFi.exe scan [选项]      扫描 WiFi 网络（默认）
+                      WavyFi.exe p2p  [选项]      列出正在广播的 WiFi Direct 设备
+                      WavyFi.exe --demo           使用演示数据打开图形界面
+                      （不带参数时启动图形界面）
+
+                网络扫描选项（scan）：
+                  --adapters all|N[,M...]  要扫描的网卡（默认：第一个）
+                  --list-adapters          列出网卡及其编号后退出
+                  --band 2.4|5|6           仅显示指定频段
+                  --advise                 附加信道建议
+                  --sort COL[:asc|desc][,COL...]
+                                           排序列：ssid, bssid, adapter, rssi, signal, channel,
+                                           width, freq, band, standards, maxrate,
+                                           security, cipher, wps, vendor, connected
+                                           asc 为升序，desc 为降序
+
+                设备发现选项（p2p）：
+                  --sort COL[:asc|desc][,COL...]
+                                           排序列：name, rssi, type, paired, vendor, mac
+
+                通用选项：
+                  --lang en|zh-CN          输出语言（英文／简体中文）
+                  --search TEXT            按名称/BSSID/MAC/厂商筛选
+                  --min-signal DBM         隐藏信号弱于此值的条目（例如 -75）
+                  --csv                    输出 CSV，保留英文列名和原始值以兼容脚本
+                  --watch [SECONDS]        持续扫描，间隔为指定秒数（默认 5 秒），Ctrl+C 停止
+                  --timeout SECONDS        每轮最长等待秒数（scan 默认 6 秒，p2p 默认 10 秒）
+                  -v, --version            显示程序版本
+                  -h, --help               显示此帮助
+
+                示例：
+                  WavyFi.exe scan --lang zh-CN --band 5 --min-signal -80 --advise
+                  WavyFi.exe scan --adapters all --csv > networks.csv
+                  WavyFi.exe scan --sort channel:asc,rssi:desc
+                  WavyFi.exe p2p --sort type --watch 10
+                """);
+            return;
+        }
         Console.WriteLine($"""
             WavyFi v{AppVersion()} - scan nearby WiFi networks from the terminal.
 
@@ -636,6 +719,7 @@ internal static class CliRunner
                                        name, rssi, type, paired, vendor, mac
 
             Options (both):
+              --lang en|zh-CN          output language (English / Simplified Chinese)
               --search TEXT            name/BSSID/MAC/vendor substring filter
               --min-signal DBM         hide entries weaker than this (e.g. -75)
               --csv                    CSV output instead of a table

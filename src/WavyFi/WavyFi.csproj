@@ -9,7 +9,7 @@
     <ApplicationIcon>Resources\WavyFi.ico</ApplicationIcon>
     <Authors>zhgzhg</Authors>
     <Copyright>© 2026 zhgzhg</Copyright>
-    <RepositoryUrl>https://github.com/zhgzhg/WavyFi</RepositoryUrl>
+    <RepositoryUrl>https://github.com/cleafw/WavyFi</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

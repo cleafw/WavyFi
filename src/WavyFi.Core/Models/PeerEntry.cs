@@ -1,3 +1,4 @@
+using WavyFi.Localization;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using WavyFi.WifiDirect;
@@ -35,7 +36,10 @@ public class PeerEntry : INotifyPropertyChanged
     /// catches a fresh advertisement, so this fills in bursts (last 10 min).</summary>
     public List<(DateTime Time, int Rssi)> History { get; } = new();
 
-    public string Name { get => _name; private set => Set(ref _name, value); }
+    public string NameText => DisplayText.PeerName(Name);
+    public string VendorText => DisplayText.Vendor(Vendor);
+    public string DeviceTypeText => DisplayText.DeviceType(DeviceType);
+    public string Name { get => _name; private set { if (Set(ref _name, value)) OnPropertyChanged(nameof(NameText)); } }
 
     public bool IsPaired
     {
@@ -43,7 +47,7 @@ public class PeerEntry : INotifyPropertyChanged
         private set { if (Set(ref _isPaired, value)) OnPropertyChanged(nameof(PairedText)); }
     }
 
-    public string PairedText => IsPaired ? "yes" : "";
+    public string PairedText => IsPaired ? Locale.T("yes", "是") : "";
 
     public int? SignalDbm
     {
@@ -54,8 +58,8 @@ public class PeerEntry : INotifyPropertyChanged
     /// <summary>Bare number — the column header carries "dBm".</summary>
     public string SignalText => SignalDbm?.ToString() ?? "";
 
-    public string DeviceType { get => _deviceType; private set => Set(ref _deviceType, value); }
-    public string Vendor { get => _vendor; private set => Set(ref _vendor, value); }
+    public string DeviceType { get => _deviceType; private set { if (Set(ref _deviceType, value)) OnPropertyChanged(nameof(DeviceTypeText)); } }
+    public string Vendor { get => _vendor; private set { if (Set(ref _vendor, value)) OnPropertyChanged(nameof(VendorText)); } }
     public string Address { get => _address; private set => Set(ref _address, value); }
     public bool IsStale { get => _isStale; private set => Set(ref _isStale, value); }
 

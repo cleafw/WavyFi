@@ -1,3 +1,4 @@
+using static WavyFi.Localization.Locale;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
@@ -110,13 +111,13 @@ public class SignalGraph : FrameworkElement
         for (int min = 5; min >= 0; min--)
         {
             double x = left + (1 - min / 5.0) * plotW;
-            var t = Text(min == 0 ? "now" : $"-{min}m", 9 * fs, AxisBrush, ppd);
+            var t = Text(min == 0 ? T("now", "现在") : F("-{0}m", "-{0}分", min), 9 * fs, AxisBrush, ppd);
             dc.DrawText(t, new Point(Math.Min(x - t.Width / 2, w - right - t.Width), h - bottom + 3));
         }
 
         if (_entries.Count == 0 && _peers.Count == 0)
         {
-            var hint = Text("Select network(s) or WiFi Direct peer(s) to plot signal", 11 * fs, AxisBrush, ppd);
+            var hint = Text(T("Select network(s) or WiFi Direct peer(s) to plot signal", "选择网络或 Wi-Fi 直连设备以查看信号变化"), 11 * fs, AxisBrush, ppd);
             dc.DrawText(hint, new Point((w - hint.Width) / 2, (h - hint.Height) / 2));
             return;
         }
@@ -167,7 +168,7 @@ public class SignalGraph : FrameworkElement
 
             var last = samples[^1];
             double lx = X(last.Time), ly = Y(last.Rssi);
-            var label = Text($"{p.Name} ({last.Rssi})", 10 * fs, brush, ppd);
+            var label = Text($"{p.NameText} ({last.Rssi})", 10 * fs, brush, ppd);
             dc.DrawText(label, new Point(
                 Math.Clamp(lx - label.Width, left, Math.Max(left, w - right - label.Width)),
                 Math.Clamp(ly - label.Height - dotRadius - 2, 0, Math.Max(0, h - bottom - label.Height))));

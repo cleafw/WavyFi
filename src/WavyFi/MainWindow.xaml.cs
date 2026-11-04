@@ -1,3 +1,5 @@
+using WavyFi.Localization;
+using static WavyFi.Localization.Locale;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
@@ -22,28 +24,37 @@ public partial class MainWindow : Window
     private readonly WifiDirectWatcher _wifiDirect;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _peerTimer;
-    private readonly NetworkStore _store = new();
-    private readonly PeerStore _peerStore = new();
+    private readonly NetworkStore _store;
+    private readonly PeerStore _peerStore;
     private readonly ListCollectionView _view;
     private readonly ListCollectionView _peersView;
     private readonly Demo.DemoData? _demo;
     private bool _refreshing;
+    private bool _closing;
+    private int _lastScanCount;
+    private DateTime? _lastScanTime;
 
-    public MainWindow(bool demo = false)
+    public MainWindow(bool demo = false, NetworkStore? store = null, PeerStore? peerStore = null, Demo.DemoData? demoData = null)
     {
-        _demo = demo ? new Demo.DemoData() : null;
+        _store = store ?? new NetworkStore();
+        _peerStore = peerStore ?? new PeerStore();
+        _demo = demo ? demoData ?? new Demo.DemoData() : null;
+        Application.Current.Resources["ScanOnText"] = T("Scan ON", "扫描开启");
+        Application.Current.Resources["ScanOffText"] = T("Scan OFF", "扫描关闭");
         InitializeComponent();
+        LanguageSelector.SelectedIndex = Locale.IsChinese ? 0 : 1;
         UserSettings.Restore(this);
         UserSettings.RestoreColumnLayout("net", NetworksGrid);
         UserSettings.RestoreColumnLayout("p2p", PeersGrid);
         Closing += (_, _) =>
         {
+            _closing = true;
             UserSettings.Save(this);
             UserSettings.SaveColumnLayout("net", NetworksGrid);
             UserSettings.SaveColumnLayout("p2p", PeersGrid);
         };
 
-        _view = (ListCollectionView)CollectionViewSource.GetDefaultView(_store.Entries);
+        _view = new ListCollectionView(_store.Entries);
         _view.Filter = FilterPredicate;
         _view.SortDescriptions.Add(new SortDescription(nameof(NetworkEntry.IsConnected), ListSortDirection.Descending));
         _view.SortDescriptions.Add(new SortDescription(nameof(NetworkEntry.Rssi), ListSortDirection.Descending));
@@ -52,7 +63,7 @@ public partial class MainWindow : Window
         _view.LiveSortingProperties.Add(nameof(NetworkEntry.Rssi));
         NetworksGrid.ItemsSource = _view;
 
-        _peersView = (ListCollectionView)CollectionViewSource.GetDefaultView(_peerStore.Entries);
+        _peersView = new ListCollectionView(_peerStore.Entries);
         _peersView.Filter = PeerFilterPredicate;
         _peersView.SortDescriptions.Add(new SortDescription(nameof(PeerEntry.SignalDbm), ListSortDirection.Descending));
         PeersGrid.ItemsSource = _peersView;
@@ -72,14 +83,14 @@ public partial class MainWindow : Window
         // triggering another scan here would loop scan -> complete -> scan.
         _scanner.ScanCompleted += _ => Dispatcher.BeginInvoke(async () =>
         {
-            if (ScanToggle.IsChecked == true)
+            if (!_closing && ScanToggle.IsChecked == true)
                 await RefreshAsync(triggerScan: false);
         });
         AdapterList.ItemsSource = _adapterChoices;
         ReloadAdapterList();
         AdapterDropdown.IsEnabled = ScanToggle.IsChecked != true;
         _wifiDirect = new WifiDirectWatcher();
-        _wifiDirect.PeersChanged += () => Dispatcher.BeginInvoke(UpdatePeersList);
+        _wifiDirect.PeersChanged += () => Dispatcher.BeginInvoke(() => { if (!_closing) UpdatePeersList(); });
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _timer.Tick += async (_, _) => await RefreshAsync();
@@ -89,6 +100,7 @@ public partial class MainWindow : Window
         _peerTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _peerTimer.Tick += (_, _) =>
         {
+            if (_closing) return;
             _peerStore.Tick(DateTime.Now);
             _peersView.Refresh();
         };
@@ -105,7 +117,7 @@ public partial class MainWindow : Window
             if (ScanToggle.IsChecked == true)
             {
                 await RefreshAsync();
-                _timer.Start();
+                if (!_closing) _timer.Start();
             }
         };
         Closed += (_, _) =>
@@ -119,7 +131,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync(bool triggerScan = true)
     {
-        if (_refreshing) return;
+        if (_refreshing || _closing) return;
         _refreshing = true;
         try
         {
@@ -131,6 +143,7 @@ public partial class MainWindow : Window
                     return _scanner.GetNetworks();
                 });
 
+            if (_closing) return;
             _store.ApplyScan(networks, DateTime.Now);
             if (_demo is not null)
             {
@@ -146,18 +159,19 @@ public partial class MainWindow : Window
                 AdviceText.Text = ChannelAdvisor.BuildReport(_store.Entries.ToList());
             if (_demo is not null)
             {
-                StatusText.Text = "Scanning every 5 s.";
+                StatusText.Text = T("Scanning every 5 s.", "每 5 秒扫描一次。");
             }
             else
             {
                 var off = _scanner.PoweredOffAdapters;
-                StatusText.Text = off.Count == 0 ? "Scanning every 5 s."
+                StatusText.Text = off.Count == 0 ? T("Scanning every 5 s.", "每 5 秒扫描一次。")
                     : off.Count == _scanner.SelectedAdapters.Count
-                        ? "WiFi is turned off — turn it back on in quick settings or Settings > Network & internet to resume scanning."
-                        : $"Radio off on {string.Join(", ", off)} — scanning continues on the other adapters.";
+                        ? T("WiFi is turned off — turn it back on in quick settings or Settings > Network & internet to resume scanning.", "Wi-Fi 已关闭，请在快捷设置或“设置 > 网络和 Internet”中开启，以恢复扫描。")
+                        : F("Radio off on {0} — scanning continues on the other adapters.", "{0} 的无线功能已关闭；其他网卡仍在扫描。", string.Join(", ", off));
             }
-            StatsText.Text = $"{networks.Count} in range  ·  {_store.Entries.Count} tracked  ·  " +
-                             $"updated {DateTime.Now:HH:mm:ss}";
+            _lastScanCount = networks.Count;
+            _lastScanTime = DateTime.Now;
+            UpdateStatsText();
 
             if (_demo is null)
             {
@@ -170,6 +184,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            if (_closing) return;
             StatusText.Text = ex.Message;
             ReloadAdapterList(); // reflect adapters that vanished or reappeared
         }
@@ -177,6 +192,13 @@ public partial class MainWindow : Window
         {
             _refreshing = false;
         }
+    }
+
+    private void UpdateStatsText()
+    {
+        StatsText.Text = _lastScanTime is DateTime time
+            ? F("{0} in range  ·  {1} tracked  ·  updated {2:HH:mm:ss}", "范围内 {0} 个  ·  已记录 {1} 个  ·  更新于 {2:HH:mm:ss}", _lastScanCount, _store.Entries.Count, time)
+            : "";
     }
 
     private void UpdateGraphs()
@@ -303,7 +325,7 @@ public partial class MainWindow : Window
         if (networks.Count == 0 && peers.Count == 0) return;
 
         var sb = new StringBuilder();
-        sb.AppendLine("Timestamp,Name,BSSID/MAC,RSSI (dBm),Kind");
+        sb.AppendLine(T("Timestamp,Name,BSSID/MAC,RSSI (dBm),Kind", "时间,名称,BSSID/MAC,信号（dBm）,类型"));
         int rows = 0;
         foreach (var entry in networks)
         {
@@ -311,7 +333,7 @@ public partial class MainWindow : Window
             {
                 sb.AppendLine(string.Join(",",
                     time.ToString("yyyy-MM-dd HH:mm:ss"),
-                    CsvFormat.Escape(entry.DisplayName), CsvFormat.Escape(entry.Bssid), rssi, "network"));
+                    CsvFormat.Escape(entry.DisplayName), CsvFormat.Escape(entry.Bssid), rssi, T("network", "无线网络")));
                 rows++;
             }
         }
@@ -321,7 +343,7 @@ public partial class MainWindow : Window
             {
                 sb.AppendLine(string.Join(",",
                     time.ToString("yyyy-MM-dd HH:mm:ss"),
-                    CsvFormat.Escape(peer.Name), CsvFormat.Escape(peer.Address), rssi, "wifi-direct"));
+                    CsvFormat.Escape(peer.NameText), CsvFormat.Escape(peer.Address), rssi, T("wifi-direct", "Wi-Fi 直连")));
                 rows++;
             }
         }
@@ -332,7 +354,7 @@ public partial class MainWindow : Window
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+            Filter = T("CSV files (*.csv)|*.csv|All files (*.*)|*.*", "CSV 文件 (*.csv)|*.csv|所有文件 (*.*)|*.*"),
             FileName = suggestedName,
             DefaultExt = ".csv",
         };
@@ -342,11 +364,11 @@ public partial class MainWindow : Window
         {
             // UTF-8 with BOM so Excel detects the encoding.
             File.WriteAllText(dialog.FileName, content, new UTF8Encoding(true));
-            StatusText.Text = $"Exported {rowCount} rows to {dialog.FileName}";
+            StatusText.Text = F("Exported {0} rows to {1}", "已导出 {0} 行到 {1}", rowCount, dialog.FileName);
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Export failed: {ex.Message}";
+            StatusText.Text = F("Export failed: {0}", "导出失败：{0}", ex.Message);
         }
     }
 
@@ -358,7 +380,7 @@ public partial class MainWindow : Window
         }
         catch
         {
-            StatusText.Text = "Clipboard is busy — try copying again.";
+            StatusText.Text = T("Clipboard is busy — try copying again.", "剪贴板正忙，请重试复制。");
         }
     }
 
@@ -402,13 +424,13 @@ public partial class MainWindow : Window
     {
         if (_view is null || _peersView is null) return; // fires during InitializeComponent
         MinRssiLabel.Text = MinRssiSlider.Value <= MinRssiSlider.Minimum
-            ? "any"
+            ? T("any", "不限")
             : ((int)MinRssiSlider.Value).ToString();
 
         if (LastSeenSlider.Value >= LastSeenSlider.Maximum)
         {
             _maxAgeFilterSeconds = -1;
-            LastSeenLabel.Text = "any";
+            LastSeenLabel.Text = T("any", "不限");
         }
         else
         {
@@ -438,9 +460,9 @@ public partial class MainWindow : Window
     private void CopyPeer_Click(object sender, RoutedEventArgs e)
     {
         if (PeersGrid.SelectedItem is not PeerEntry p) return;
-        var name = p.IsPaired ? $"{p.Name} (paired)" : p.Name;
+        var name = p.IsPaired ? F("{0} (paired)", "{0}（已配对）", p.NameText) : p.NameText;
         var signal = p.SignalDbm is int s ? $"{s} dBm" : "";
-        var details = new[] { p.DeviceType, p.Vendor, p.Address, signal, $"seen {p.LastSeenSeconds}s ago" }
+        var details = new[] { p.DeviceTypeText, p.VendorText, p.Address, signal, F("seen {0}s ago", "{0} 秒前发现", p.LastSeenSeconds) }
             .Where(d => d.Length > 0);
         TrySetClipboard($"{name}{Environment.NewLine}{string.Join("  ·  ", details)}");
     }
@@ -450,12 +472,13 @@ public partial class MainWindow : Window
         var peers = _peersView.Cast<PeerEntry>().ToList(); // filtered, sorted view
         if (peers.Count == 0) return;
         TrySetClipboard(string.Join(Environment.NewLine, peers.Select(p =>
-            string.Join("\t", p.Name + (p.IsPaired ? " (paired)" : ""),
-                p.SignalText, p.DeviceType, p.Vendor, p.Address, $"{p.LastSeenSeconds}s"))));
+            string.Join("\t", p.NameText + (p.IsPaired ? T(" (paired)", "（已配对）") : ""),
+                p.SignalText, p.DeviceTypeText, p.VendorText, p.Address, $"{p.LastSeenSeconds}s"))));
     }
 
     private void UpdatePeersList()
     {
+        if (_closing) return;
         _peerStore.Apply(_wifiDirect.GetPeers(), DateTime.Now);
         _peersView.Refresh();
         UpdateSignalGraph(); // new peer samples should appear as dots promptly
@@ -470,7 +493,8 @@ public partial class MainWindow : Window
             !p.Name.Contains(query, StringComparison.OrdinalIgnoreCase) &&
             !p.Address.Contains(query, StringComparison.OrdinalIgnoreCase) &&
             !p.Vendor.Contains(query, StringComparison.OrdinalIgnoreCase) &&
-            !p.DeviceType.Contains(query, StringComparison.OrdinalIgnoreCase))
+            !p.DeviceType.Contains(query, StringComparison.OrdinalIgnoreCase) &&
+            !p.DeviceTypeText.Contains(query, StringComparison.OrdinalIgnoreCase))
             return false;
 
         // With the slider raised, peers with no signal reading can't qualify.
@@ -556,9 +580,9 @@ public partial class MainWindow : Window
 
         AdapterSummary.Text = chosen.Count switch
         {
-            0 => "(no adapter)",
+            0 => T("(no adapter)", "（无网卡）"),
             1 => $"[{chosen[0].Index}] {chosen[0].Description}",
-            _ => $"{chosen.Count} adapters: {string.Join(" ", chosen.Select(a => $"[{a.Index}]"))}",
+            _ => F("{0} adapters: {1}", "{0} 个网卡：{1}", chosen.Count, string.Join(" ", chosen.Select(a => $"[{a.Index}]"))),
         };
     }
 
@@ -580,13 +604,13 @@ public partial class MainWindow : Window
                 unchecked_.IsSelected = true;
                 _reloadingAdapters = false;
             }
-            StatusText.Text = "At least one adapter must remain selected.";
+            StatusText.Text = T("At least one adapter must remain selected.", "请至少保留一个选中的网卡。");
             return;
         }
 
         ApplyAdapterSelection();
         ClearAccumulatedData();
-        StatusText.Text = "Adapter selection changed — turn scanning on to start.";
+        StatusText.Text = T("Adapter selection changed — turn scanning on to start.", "已更改网卡选择，请开启扫描。");
     }
 
     private async void ScanToggle_Changed(object sender, RoutedEventArgs e)
@@ -604,7 +628,7 @@ public partial class MainWindow : Window
         {
             _timer.Stop();
             AdapterDropdown.IsEnabled = true;
-            StatusText.Text = "Scanning paused — table and graphs frozen; adapter can be switched.";
+            StatusText.Text = T("Scanning paused — table and graphs frozen; adapter can be switched.", "扫描已暂停，表格与图表保持不变；现在可切换网卡。");
         }
     }
 
@@ -629,7 +653,7 @@ public partial class MainWindow : Window
         _fontScale = Math.Clamp(Math.Round(scale, 1), 0.8, 1.6);
         ApplyFontScale();
         UserSettings.SaveFontScale(_fontScale);
-        StatusText.Text = $"Font size: {(int)(_fontScale * 100)}%";
+        StatusText.Text = F("Font size: {0}%", "字体大小：{0}%", (int)(_fontScale * 100));
     }
 
     private void FontDecrease_Click(object sender, RoutedEventArgs e) => SetFontScale(_fontScale - 0.1);
@@ -663,11 +687,53 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void LanguageSelector_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || LanguageSelector.SelectedItem is not ComboBoxItem { Tag: string language }) return;
+        if (Locale.Culture.Name == language) return;
+        bool paused = ScanToggle.IsChecked != true;
+        UserSettings.Save(this);
+        UserSettings.SaveColumnLayout("net", NetworksGrid);
+        UserSettings.SaveColumnLayout("p2p", PeersGrid);
+        UserSettings.SaveLanguage(language);
+        Locale.Culture = System.Globalization.CultureInfo.GetCultureInfo(language);
+        var selectedNetworks = NetworksGrid.SelectedItems.Cast<NetworkEntry>().ToList();
+        var selectedPeers = PeersGrid.SelectedItems.Cast<PeerEntry>().ToList();
+        var replacement = new MainWindow(_demo is not null, _store, _peerStore, _demo);
+        replacement._lastScanCount = _lastScanCount;
+        replacement._lastScanTime = _lastScanTime;
+        replacement.UpdateStatsText();
+        replacement.SearchBox.Text = SearchBox.Text;
+        replacement.BandFilter.SelectedIndex = BandFilter.SelectedIndex;
+        replacement.MinRssiSlider.Value = MinRssiSlider.Value;
+        replacement.LastSeenSlider.Value = LastSeenSlider.Value;
+        foreach (var network in selectedNetworks) replacement.NetworksGrid.SelectedItems.Add(network);
+        foreach (var peer in selectedPeers) replacement.PeersGrid.SelectedItems.Add(peer);
+        replacement.GraphTabs.SelectedIndex = GraphTabs.SelectedIndex;
+        replacement.AdviceText.Text = ChannelAdvisor.BuildReport(_store.Entries.ToList());
+        replacement.UpdateGraphs();
+        var selected = _adapterChoices.Where(c => c.IsSelected).Select(c => c.Adapter.Guid).ToHashSet();
+        replacement._reloadingAdapters = true;
+        foreach (var choice in replacement._adapterChoices)
+            choice.IsSelected = selected.Contains(choice.Adapter.Guid);
+        replacement._reloadingAdapters = false;
+        if (replacement._demo is null) replacement.ApplyAdapterSelection();
+        replacement.ScanToggle.IsChecked = !paused;
+        replacement.AdapterDropdown.IsEnabled = paused;
+        if (paused) replacement.StatusText.Text = T("Scanning paused — table and graphs frozen; adapter can be switched.", "扫描已暂停，表格与图表保持不变；现在可切换网卡。");
+        Application.Current.MainWindow = replacement;
+        replacement.Show();
+        Close();
+    }
+
     private void ClearAccumulatedData()
     {
+        _lastScanCount = 0;
+        _lastScanTime = null;
+        UpdateStatsText();
         _store.Entries.Clear();
         _view.Refresh();
         UpdateGraphs();
-        AdviceText.Text = "Waiting for first scan...";
+        AdviceText.Text = T("Waiting for first scan...", "等待首次扫描…");
     }
 }

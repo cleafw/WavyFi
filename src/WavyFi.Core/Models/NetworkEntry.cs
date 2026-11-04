@@ -1,3 +1,4 @@
+using WavyFi.Localization;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -58,8 +59,8 @@ public class NetworkEntry : INotifyPropertyChanged
         private set { if (Set(ref _ssid, value)) OnPropertyChanged(nameof(DisplayName)); }
     }
 
-    public string DisplayName => string.IsNullOrEmpty(Ssid) ? "(hidden)" : Ssid;
-    public string Vendor { get => _vendor; private set => Set(ref _vendor, value); }
+    public string DisplayName => string.IsNullOrEmpty(Ssid) ? Locale.T("(hidden)", "（隐藏网络）") : Ssid;
+    public string Vendor { get => _vendor; private set { if (Set(ref _vendor, value)) OnPropertyChanged(nameof(VendorText)); } }
     public int Rssi { get => _rssi; private set => Set(ref _rssi, value); }
     public int SignalPercent { get => _signalPercent; private set => Set(ref _signalPercent, value); }
     public int Channel { get => _channel; private set => Set(ref _channel, value); }
@@ -105,8 +106,11 @@ public class NetworkEntry : INotifyPropertyChanged
                 : "";
         }
     }
-    public string Security { get => _security; private set => Set(ref _security, value); }
-    public string Cipher { get => _cipher; private set => Set(ref _cipher, value); }
+    public string SecurityText => DisplayText.Security(Security);
+    public string CipherText => DisplayText.Cipher(Cipher);
+    public string VendorText => DisplayText.Vendor(Vendor);
+    public string Security { get => _security; private set { if (Set(ref _security, value)) OnPropertyChanged(nameof(SecurityText)); } }
+    public string Cipher { get => _cipher; private set { if (Set(ref _cipher, value)) OnPropertyChanged(nameof(CipherText)); } }
     public string WpsVersion { get => _wpsVersion; private set => Set(ref _wpsVersion, value); }
     public string RatesCsv { get => _ratesCsv; private set => Set(ref _ratesCsv, value); }
     public double MaxRateMbps { get => _maxRateMbps; private set => Set(ref _maxRateMbps, value); }

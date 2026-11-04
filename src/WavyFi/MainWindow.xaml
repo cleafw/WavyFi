@@ -1,6 +1,7 @@
 <Window x:Class="WavyFi.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:WavyFi.Localization"
         xmlns:controls="clr-namespace:WavyFi.Controls"
         Title="WavyFi" Height="760" Width="1180"
         PreviewKeyDown="Window_PreviewKeyDown"
@@ -29,12 +30,12 @@
                           IsChecked="True" VerticalAlignment="Center"
                           Checked="ScanToggle_Changed" Unchecked="ScanToggle_Changed"
                           DockPanel.Dock="Left"/>
-            <TextBlock Text="Adapters:" VerticalAlignment="Center" Margin="14,0,6,0"
+            <TextBlock Text="{loc:Text S0}" VerticalAlignment="Center" Margin="14,0,6,0"
                        Foreground="#8A8A94" DockPanel.Dock="Left"/>
             <ToggleButton x:Name="AdapterDropdown" Style="{StaticResource DropdownToggle}"
                           MinWidth="280" MaxWidth="420" VerticalAlignment="Center"
                           DockPanel.Dock="Left" Checked="AdapterDropdown_Opened">
-                <TextBlock x:Name="AdapterSummary" Text="(no adapter)"
+                <TextBlock x:Name="AdapterSummary" Text="{loc:Text S1}"
                            TextTrimming="CharacterEllipsis"/>
             </ToggleButton>
             <Popup DockPanel.Dock="Left" PlacementTarget="{Binding ElementName=AdapterDropdown}"
@@ -58,21 +59,27 @@
                 </Border>
             </Popup>
             <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
-                <Hyperlink NavigateUri="https://github.com/zhgzhg/WavyFi"
+                <Hyperlink NavigateUri="https://github.com/cleafw/WavyFi"
                            RequestNavigate="RepoLink_RequestNavigate"
-                           ToolTip="Open the project repository">
+                           ToolTip="{loc:Text S2}">
                     <Run x:Name="TitleRun" Text="WavyFi"/>
                 </Hyperlink>
             </TextBlock>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                         VerticalAlignment="Center" Margin="12,0,0,0">
                 <Button Style="{StaticResource ToolButton}" Content="A−" FontSize="11"
-                        ToolTip="Decrease font size (Ctrl+-)" Click="FontDecrease_Click"/>
+                        ToolTip="{loc:Text S3}" Click="FontDecrease_Click"/>
                 <Button Style="{StaticResource ToolButton}" Content="A" FontSize="11" Margin="4,0,0,0"
-                        ToolTip="Reset font size (Ctrl+0)" Click="FontReset_Click"/>
+                        ToolTip="{loc:Text S4}" Click="FontReset_Click"/>
                 <Button Style="{StaticResource ToolButton}" Content="A+" FontSize="11" Margin="4,0,0,0"
-                        ToolTip="Increase font size (Ctrl++)" Click="FontIncrease_Click"/>
+                        ToolTip="{loc:Text S5}" Click="FontIncrease_Click"/>
             </StackPanel>
+            <ComboBox x:Name="LanguageSelector" DockPanel.Dock="Right" Width="100"
+                      Margin="12,0,0,0" VerticalAlignment="Center"
+                      ToolTip="中文 / English" SelectionChanged="LanguageSelector_Changed">
+                <ComboBoxItem Content="中文" Tag="zh-CN"/>
+                <ComboBoxItem Content="English" Tag="en"/>
+            </ComboBox>
             <Border/>
         </DockPanel>
 
@@ -95,21 +102,21 @@
                      Each filter is one StackPanel so wrapping on narrow
                      windows moves whole groups, never orphaning a value. -->
                 <WrapPanel x:Name="FilterRow1" Margin="0,0,0,6">
-                    <TextBlock Style="{StaticResource SectionHeader}" Text="NEARBY NETWORKS"
+                    <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Text S6}"
                                VerticalAlignment="Center" Margin="0,0,18,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
-                        <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,6,0"
+                        <TextBlock Text="{loc:Text S7}" VerticalAlignment="Center" Margin="0,0,6,0"
                                    Foreground="#8A8A94"/>
                         <TextBox x:Name="SearchBox" Width="180"
                                  TextChanged="Filter_Changed"
-                                 ToolTip="Filter by SSID, BSSID or vendor"/>
+                                 ToolTip="{loc:Text S8}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Band:" VerticalAlignment="Center" Margin="0,0,6,0"
+                        <TextBlock Text="{loc:Text S9}" VerticalAlignment="Center" Margin="0,0,6,0"
                                    Foreground="#8A8A94"/>
                         <ComboBox x:Name="BandFilter" Width="100"
                                   SelectedIndex="0" SelectionChanged="Filter_Changed">
-                            <ComboBoxItem Content="All"/>
+                            <ComboBoxItem Content="{loc:Text S10}"/>
                             <ComboBoxItem Content="2.4 GHz"/>
                             <ComboBoxItem Content="5 GHz"/>
                             <ComboBoxItem Content="6 GHz"/>
@@ -118,21 +125,21 @@
                 </WrapPanel>
                 <WrapPanel Margin="0,0,0,8">
                     <StackPanel Orientation="Horizontal" Margin="0,0,2,0">
-                        <TextBlock Text="Signal (dBm) ≥" VerticalAlignment="Center" Margin="0,0,6,0"
+                        <TextBlock Text="{loc:Text S11}" VerticalAlignment="Center" Margin="0,0,6,0"
                                    Foreground="#8A8A94"/>
                         <Slider x:Name="MinRssiSlider" Width="140" Minimum="-100" Maximum="-30"
                                 Value="-100" VerticalAlignment="Center"
-                                ToolTip="Hide networks and WiFi Direct peers weaker than this — the highlighted part of the track is what passes"
+                                ToolTip="{loc:Text S12}"
                                 ValueChanged="Filter_Changed"/>
-                        <TextBlock x:Name="MinRssiLabel" Text="any" VerticalAlignment="Center"
+                        <TextBlock x:Name="MinRssiLabel" Text="{loc:Text S13}" VerticalAlignment="Center"
                                    Margin="6,0,0,0" Foreground="#8A8A94" MinWidth="34"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Seen ≤" VerticalAlignment="Center" Margin="0,0,6,0"
+                        <TextBlock Text="{loc:Text S14}" VerticalAlignment="Center" Margin="0,0,6,0"
                                    Foreground="#8A8A94"/>
                         <Slider x:Name="LastSeenSlider" Width="140" Minimum="0" Maximum="1000"
                                 Value="1000" VerticalAlignment="Center"
-                                ToolTip="Hide networks and WiFi Direct peers not seen within the chosen time (5 s up to 168 h) — the highlighted part of the track is what passes"
+                                ToolTip="{loc:Text S15}"
                                 ValueChanged="Filter_Changed">
                             <Slider.Resources>
                                 <!-- Max-age filter: the passing side is the LEFT
@@ -141,7 +148,7 @@
                                 <SolidColorBrush x:Key="Slider.FillRightBrush" Color="Transparent"/>
                             </Slider.Resources>
                         </Slider>
-                        <TextBlock x:Name="LastSeenLabel" Text="any" VerticalAlignment="Center"
+                        <TextBlock x:Name="LastSeenLabel" Text="{loc:Text S13}" VerticalAlignment="Center"
                                    Margin="6,0,0,0" Foreground="#8A8A94" MinWidth="48"/>
                     </StackPanel>
                 </WrapPanel>
@@ -160,35 +167,35 @@
                       RowBackground="#26262E" AlternatingRowBackground="#2C2C36">
                 <DataGrid.ContextMenu>
                     <ContextMenu>
-                        <MenuItem x:Name="CopyCellItem" Header="Copy cell" Click="CopyCell_Click"/>
-                        <MenuItem Header="Copy row(s)" Click="CopyRows_Click"/>
-                        <MenuItem Header="Copy table (CSV)" Click="CopyTable_Click"/>
+                        <MenuItem x:Name="CopyCellItem" Header="{loc:Text S16}" Click="CopyCell_Click"/>
+                        <MenuItem Header="{loc:Text S17}" Click="CopyRows_Click"/>
+                        <MenuItem Header="{loc:Text S18}" Click="CopyTable_Click"/>
                         <Separator/>
-                        <MenuItem Header="Export table to CSV file..." Click="ExportTable_Click"/>
+                        <MenuItem Header="{loc:Text S19}" Click="ExportTable_Click"/>
                     </ContextMenu>
                 </DataGrid.ContextMenu>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="(E)SSID" Binding="{Binding DisplayName}" Width="170"/>
-                    <DataGridTextColumn Header="BSSID" Binding="{Binding Bssid}" Width="135"/>
-                    <DataGridTextColumn Header="Adapter" Binding="{Binding AdapterText}" Width="200"
+                    <DataGridTextColumn Header="{loc:Text S20}" loc:ColumnKey.Id="(E)SSID" Binding="{Binding DisplayName}" Width="170"/>
+                    <DataGridTextColumn Header="{loc:Text S21}" loc:ColumnKey.Id="BSSID" Binding="{Binding Bssid}" Width="135"/>
+                    <DataGridTextColumn Header="{loc:Text S22}" loc:ColumnKey.Id="Adapter" Binding="{Binding AdapterText}" Width="200"
                                         Visibility="Collapsed"/>
-                    <DataGridTextColumn Header="Signal (%)" Binding="{Binding SignalPercent}" Width="70"
+                    <DataGridTextColumn Header="{loc:Text S23}" loc:ColumnKey.Id="Signal (%)" Binding="{Binding SignalPercent}" Width="70"
                                         Visibility="Collapsed"/>
-                    <DataGridTextColumn Header="RSSI (dBm)" Binding="{Binding Rssi}" Width="80"/>
-                    <DataGridTextColumn Header="Ch" Binding="{Binding Channel}" Width="45"/>
-                    <DataGridTextColumn Header="Width (MHz)" Binding="{Binding ChannelWidthMhz}" Width="90"/>
-                    <DataGridTextColumn Header="Max rate (Mbps)" Binding="{Binding MaxRateMbps, StringFormat={}{0:0.#}}" Width="110"/>
-                    <DataGridTextColumn Header="Freq (MHz)" Binding="{Binding FrequencyMhz}" Width="80"/>
-                    <DataGridTextColumn Header="Band (GHz)" Binding="{Binding BandText}" Width="80"/>
-                    <DataGridTextColumn Header="802.11" Binding="{Binding Standards}" Width="80"/>
-                    <DataGridTextColumn Header="Generation" Binding="{Binding Generation}" Width="90"
+                    <DataGridTextColumn Header="{loc:Text S24}" loc:ColumnKey.Id="RSSI (dBm)" Binding="{Binding Rssi}" Width="80"/>
+                    <DataGridTextColumn Header="{loc:Text S25}" loc:ColumnKey.Id="Ch" Binding="{Binding Channel}" Width="45"/>
+                    <DataGridTextColumn Header="{loc:Text S26}" loc:ColumnKey.Id="Width (MHz)" Binding="{Binding ChannelWidthMhz}" Width="90"/>
+                    <DataGridTextColumn Header="{loc:Text S27}" loc:ColumnKey.Id="Max rate (Mbps)" Binding="{Binding MaxRateMbps, StringFormat={}{0:0.#}}" Width="110"/>
+                    <DataGridTextColumn Header="{loc:Text S28}" loc:ColumnKey.Id="Freq (MHz)" Binding="{Binding FrequencyMhz}" Width="80"/>
+                    <DataGridTextColumn Header="{loc:Text S29}" loc:ColumnKey.Id="Band (GHz)" Binding="{Binding BandText}" Width="80"/>
+                    <DataGridTextColumn Header="{loc:Text S30}" loc:ColumnKey.Id="802.11" Binding="{Binding Standards}" Width="80"/>
+                    <DataGridTextColumn Header="{loc:Text S31}" loc:ColumnKey.Id="Generation" Binding="{Binding Generation}" Width="90"
                                         Visibility="Collapsed"/>
-                    <DataGridTextColumn Header="Security" Binding="{Binding Security}" Width="130"/>
-                    <DataGridTextColumn Header="Cipher" Binding="{Binding Cipher}" Width="85"/>
-                    <DataGridTextColumn Header="WPS" Binding="{Binding WpsVersion}" Width="45"/>
-                    <DataGridTextColumn Header="Legacy rates (Mbps)" Binding="{Binding RatesCsv}" Width="170"/>
-                    <DataGridTextColumn Header="Vendor" Binding="{Binding Vendor}" Width="150"/>
-                    <DataGridTextColumn Header="Last seen (s)" Binding="{Binding LastSeenSeconds}" Width="90"/>
+                    <DataGridTextColumn Header="{loc:Text S32}" loc:ColumnKey.Id="Security" Binding="{Binding SecurityText}" Width="130"/>
+                    <DataGridTextColumn Header="{loc:Text S33}" loc:ColumnKey.Id="Cipher" Binding="{Binding CipherText}" Width="85"/>
+                    <DataGridTextColumn Header="{loc:Text S34}" loc:ColumnKey.Id="WPS" Binding="{Binding WpsVersion}" Width="45"/>
+                    <DataGridTextColumn Header="{loc:Text S35}" loc:ColumnKey.Id="Legacy rates (Mbps)" Binding="{Binding RatesCsv}" Width="170"/>
+                    <DataGridTextColumn Header="{loc:Text S36}" loc:ColumnKey.Id="Vendor" Binding="{Binding VendorText}" Width="150"/>
+                    <DataGridTextColumn Header="{loc:Text S37}" loc:ColumnKey.Id="Last seen (s)" Binding="{Binding LastSeenSeconds}" Width="90"/>
                 </DataGrid.Columns>
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
@@ -232,7 +239,7 @@
 
             <DockPanel Grid.Row="0">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}"
-                           Text="WIFI DIRECT DEVICES"/>
+                           Text="{loc:Text S38}"/>
                 <DataGrid x:Name="PeersGrid"
                           SelectionChanged="PeersGrid_SelectionChanged"
                           AutoGenerateColumns="False" IsReadOnly="True"
@@ -246,21 +253,21 @@
                           RowBackground="#26262E" AlternatingRowBackground="#2C2C36">
                     <DataGrid.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="Copy device info" Click="CopyPeer_Click"/>
-                            <MenuItem Header="Copy list" Click="CopyPeerList_Click"/>
+                            <MenuItem Header="{loc:Text S39}" Click="CopyPeer_Click"/>
+                            <MenuItem Header="{loc:Text S40}" Click="CopyPeerList_Click"/>
                             <Separator/>
-                            <MenuItem Header="Export list to CSV file..." Click="ExportPeers_Click"/>
+                            <MenuItem Header="{loc:Text S41}" Click="ExportPeers_Click"/>
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="110"/>
-                        <DataGridTextColumn Header="RSSI (dBm)" Binding="{Binding SignalText}"
+                        <DataGridTextColumn Header="{loc:Text S42}" loc:ColumnKey.Id="Name" Binding="{Binding NameText}" Width="110"/>
+                        <DataGridTextColumn Header="{loc:Text S24}" loc:ColumnKey.Id="RSSI (dBm)" Binding="{Binding SignalText}"
                                             SortMemberPath="SignalDbm" Width="75"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="85"/>
-                        <DataGridTextColumn Header="Paired" Binding="{Binding PairedText}" Width="50"/>
-                        <DataGridTextColumn Header="Vendor" Binding="{Binding Vendor}" Width="110"/>
-                        <DataGridTextColumn Header="MAC" Binding="{Binding Address}" Width="115"/>
-                        <DataGridTextColumn Header="Last seen (s)" Binding="{Binding LastSeenSeconds}" Width="80"/>
+                        <DataGridTextColumn Header="{loc:Text S43}" loc:ColumnKey.Id="Type" Binding="{Binding DeviceTypeText}" Width="85"/>
+                        <DataGridTextColumn Header="{loc:Text S44}" loc:ColumnKey.Id="Paired" Binding="{Binding PairedText}" Width="50"/>
+                        <DataGridTextColumn Header="{loc:Text S36}" loc:ColumnKey.Id="Vendor" Binding="{Binding VendorText}" Width="110"/>
+                        <DataGridTextColumn Header="{loc:Text S45}" loc:ColumnKey.Id="MAC" Binding="{Binding Address}" Width="115"/>
+                        <DataGridTextColumn Header="{loc:Text S37}" loc:ColumnKey.Id="Last seen (s)" Binding="{Binding LastSeenSeconds}" Width="80"/>
                     </DataGrid.Columns>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
@@ -277,13 +284,13 @@
 
             <DockPanel Grid.Row="2">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}"
-                           Text="SIGNAL OVER TIME"/>
+                           Text="{loc:Text S46}"/>
                 <controls:SignalGraph x:Name="SignalGraphView"
                                       ContextMenuOpening="SignalGraph_ContextMenuOpening">
                     <controls:SignalGraph.ContextMenu>
                         <ContextMenu>
                             <MenuItem x:Name="ExportHistoryItem"
-                                      Header="Export history to CSV file..."
+                                      Header="{loc:Text S47}"
                                       Click="ExportHistory_Click"/>
                         </ContextMenu>
                     </controls:SignalGraph.ContextMenu>
@@ -292,12 +299,12 @@
 
             <DockPanel Grid.Row="4">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}"
-                           Text="RECOMMENDATIONS"/>
+                           Text="{loc:Text S48}"/>
                 <Border Background="#26262E" Padding="10">
                     <TextBox x:Name="AdviceText" IsReadOnly="True" TextWrapping="Wrap"
                              FontFamily="Consolas" BorderThickness="0"
                              VerticalScrollBarVisibility="Auto"
-                             Text="Waiting for first scan..."/>
+                             Text="{loc:Text S49}"/>
                 </Border>
             </DockPanel>
         </Grid>
@@ -308,7 +315,7 @@
             <DockPanel>
                 <TextBlock x:Name="StatsText" DockPanel.Dock="Right"
                            Foreground="#8A8A94" Text=""/>
-                <TextBlock x:Name="StatusText" Foreground="#8A8A94" Text="Starting..."/>
+                <TextBlock x:Name="StatusText" Foreground="#8A8A94" Text="{loc:Text S50}"/>
             </DockPanel>
         </Border>
     </Grid>

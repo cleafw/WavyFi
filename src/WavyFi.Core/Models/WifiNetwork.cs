@@ -1,3 +1,4 @@
+using WavyFi.Localization;
 namespace WavyFi.Models;
 
 public class WifiNetwork
@@ -30,5 +31,5 @@ public class WifiNetwork
     public double MaxRateMbps { get; init; }
     public bool IsConnected { get; init; }
 
-    public string DisplayName => string.IsNullOrEmpty(Ssid) ? "(hidden)" : Ssid;
+    public string DisplayName => string.IsNullOrEmpty(Ssid) ? Locale.T("(hidden)", "（隐藏网络）") : Ssid;
 }
