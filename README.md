@@ -14,6 +14,19 @@ WavyFi 扫描 Windows 电脑周围的无线网络，并给出可执行的建议�
 
 上图为上游项目的英文界面截图；本分支同时提供简体中文界面。
 
+## 下载与使用
+
+适用于 Windows 10 版本 2004（内部版本 19041）及以上，包括 Windows 11。
+
+| 系统架构 | 免安装包（推荐） | 精简包 |
+| --- | --- | --- |
+| Windows x64（Intel / AMD） | [WavyFi-1.1.0-win-x64.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-x64.zip) | [WavyFi-1.1.0-win-x64-framework-dependent.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-x64-framework-dependent.zip) |
+| Windows ARM64 | [WavyFi-1.1.0-win-arm64.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-arm64.zip) | [WavyFi-1.1.0-win-arm64-framework-dependent.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-arm64-framework-dependent.zip) |
+
+解压 ZIP，双击 `WavyFi.exe` 即可扫描真实 Wi-Fi。推荐包已包含运行时，精简包需要同架构的 [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)。`--demo` 用于展示模拟网络。
+
+在 [GitHub Releases](https://github.com/cleafw/WavyFi/releases) 查看版本说明和 SHA-256 校验文件。WavyFi 的界面和无线扫描使用 Windows 接口，目前仅支持 Windows。
+
 信道占用视图的灵感来自 inSSIDer，WavyFi 则着重于：
 
 - **建议优先**：拥塞评分引擎告诉你可以如何改善网络。

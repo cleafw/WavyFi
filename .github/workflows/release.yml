@@ -13,11 +13,19 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.403
+
+      - name: Check release version
+        run: |
+          $project = [xml](Get-Content src/WavyFi/WavyFi.csproj -Raw)
+          $version = $project.Project.PropertyGroup.Version
+          if ($env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match project version $version."
+          }
 
       - name: Test
         run: dotnet test
@@ -35,7 +43,7 @@ jobs:
               -p:EnableCompressionInSingleFile=true `
               -p:DebugType=none -p:Version=$version -o "out/$rid"
             if ($LASTEXITCODE -ne 0) { exit 1 }
-            Compress-Archive -Path "out/$rid/WavyFi.exe", 'LICENSE', 'README.md' `
+            Compress-Archive -Path "out/$rid/WavyFi.exe", 'LICENSE', 'README.md', 'README.en.md' `
               -DestinationPath "WavyFi-$version-$rid.zip"
 
             # Small variant for users who already have the .NET Desktop
@@ -45,13 +53,21 @@ jobs:
               -p:PublishSingleFile=true -p:DebugType=none -p:Version=$version `
               -o "out/$rid-fdd"
             if ($LASTEXITCODE -ne 0) { exit 1 }
-            Compress-Archive -Path "out/$rid-fdd/WavyFi.exe", 'LICENSE', 'README.md' `
+            Compress-Archive -Path "out/$rid-fdd/WavyFi.exe", 'LICENSE', 'README.md', 'README.en.md' `
               -DestinationPath "WavyFi-$version-$rid-framework-dependent.zip"
           }
+
+      - name: Generate SHA-256 checksums
+        run: |
+          Get-ChildItem 'WavyFi-*.zip' | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content -Path SHA256SUMS.txt -Encoding ascii
 
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create $env:GITHUB_REF_NAME (Get-ChildItem 'WavyFi-*.zip').FullName `
-            --draft --generate-notes --title "WavyFi $env:GITHUB_REF_NAME"
+          gh release create $env:GITHUB_REF_NAME (Get-ChildItem 'WavyFi-*.zip').FullName SHA256SUMS.txt `
+            --draft --verify-tag --notes-file "docs/releases/$env:GITHUB_REF_NAME.md" `
+            --title "WavyFi $env:GITHUB_REF_NAME"

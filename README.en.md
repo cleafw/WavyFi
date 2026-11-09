@@ -22,6 +22,19 @@ advertising peer-to-peer around you.
 The screenshot above shows the upstream English interface. This fork also
 provides a Simplified Chinese interface; see the [localization checklist](docs/LOCALIZATION.md).
 
+## Download and run
+
+Requires Windows 10 version 2004 (build 19041) or later, including Windows 11.
+
+| Architecture | Portable package (recommended) | Smaller package |
+| --- | --- | --- |
+| Windows x64 (Intel / AMD) | [WavyFi-1.1.0-win-x64.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-x64.zip) | [WavyFi-1.1.0-win-x64-framework-dependent.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-x64-framework-dependent.zip) |
+| Windows ARM64 | [WavyFi-1.1.0-win-arm64.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-arm64.zip) | [WavyFi-1.1.0-win-arm64-framework-dependent.zip](https://github.com/cleafw/WavyFi/releases/download/v1.1.0/WavyFi-1.1.0-win-arm64-framework-dependent.zip) |
+
+Extract the ZIP and double-click `WavyFi.exe` to scan real networks. The recommended package includes the runtime. The smaller package requires the matching architecture of the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0). Use `--demo` to display sample networks.
+
+See [GitHub Releases](https://github.com/cleafw/WavyFi/releases) for release notes and SHA-256 checksums. WavyFi uses Windows APIs for its interface and wireless scanning and currently runs on Windows only.
+
 The channel-occupancy view takes its inspiration from inSSIDer, but
 WavyFi goes its own way:
 
